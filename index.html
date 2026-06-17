@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>北洋丸 出荷管理</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Hiragino Kaku Gothic ProN','Hiragino Sans','Yu Gothic',sans-serif;background:#e8f0f7;color:#1a2a3a;min-height:100vh}
+.container{max-width:740px;margin:0 auto;padding:24px 16px 80px}
+.header{background:#1a4a7a;color:#fff;border-radius:12px;padding:18px 20px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between}
+.header h1{font-size:18px;font-weight:700;letter-spacing:0.03em}
+.header-meta{font-size:12px;color:#a8c8e8;margin-top:4px}
+.header-right{text-align:right}
+.header-total{font-size:26px;font-weight:700;color:#fff;line-height:1}
+.header-total-label{font-size:11px;color:#a8c8e8;margin-bottom:2px}
+.header-total-unit{font-size:11px;color:#a8c8e8;margin-top:1px}
+.sync-status{font-size:11px;text-align:center;padding:6px;border-radius:8px;margin-bottom:12px;background:#fff;border:1px solid #c0d4e8;color:#5a7a9a}
+.sync-status.ok{color:#27ae60;border-color:#80c890}
+.sync-status.err{color:#c0392b;border-color:#e8a0a0}
+
+.alert-bar{display:none;background:#fdecea;border:1px solid #e8a0a0;color:#c0392b;border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:13px;font-weight:700}
+.alert-bar.show{display:block}
+
+.add-form{background:#fff;border:1px solid #c0d4e8;border-radius:10px;padding:14px;margin-bottom:16px}
+.add-form-title{font-size:12px;font-weight:700;color:#1a4a7a;margin-bottom:10px;letter-spacing:0.04em}
+.add-grid{display:flex;flex-direction:column;gap:8px}
+.add-row{display:flex;gap:8px;flex-wrap:wrap}
+.field{display:flex;flex-direction:column;gap:3px;flex:1;min-width:130px}
+.field label{font-size:10px;color:#5a7a9a;font-weight:600;padding-left:2px}
+.add-form input,.add-form select{font-size:14px;padding:0 10px;height:40px;border:1px solid #b0c8e0;border-radius:7px;background:#f4f8fc;color:#1a2a3a;font-family:inherit;width:100%}
+.add-form .field-content{flex:2;min-width:180px}
+.add-btn{width:100%;font-size:14px;padding:0 16px;height:42px;border:none;border-radius:7px;background:#1a4a7a;color:#fff;cursor:pointer;font-family:inherit;font-weight:700;margin-top:2px}
+.add-btn:hover{background:#0e3460}
+
+.tabs{display:flex;gap:8px;margin-bottom:12px}
+.tab{flex:1;text-align:center;font-size:13px;font-weight:700;padding:10px;border-radius:8px;border:1px solid #c0d4e8;background:#fff;color:#5a7a9a;cursor:pointer;user-select:none}
+.tab.active{background:#1a4a7a;color:#fff;border-color:#1a4a7a}
+.tab .tab-badge{font-size:11px;font-weight:700;margin-left:4px}
+
+.order-card{background:#fff;border:1px solid #c0d4e8;border-radius:10px;padding:13px 14px;margin-bottom:9px}
+.order-card.overdue{border-color:#e8a0a0;background:#fef6f5}
+.order-card.today{border-color:#1a4a7a;border-width:2px}
+.order-card.done{opacity:0.72}
+.order-top{display:flex;align-items:flex-start;gap:10px}
+.ship-badge{flex-shrink:0;min-width:64px;text-align:center;border-radius:8px;padding:6px 4px;background:#eaf2f8}
+.ship-date{font-size:15px;font-weight:700;color:#1a4a7a;line-height:1.15}
+.ship-rel{font-size:10px;font-weight:700;margin-top:2px;color:#5a7a9a}
+.ship-badge.overdue{background:#fdecea}
+.ship-badge.overdue .ship-date,.ship-badge.overdue .ship-rel{color:#c0392b}
+.ship-badge.today{background:#1a4a7a}
+.ship-badge.today .ship-date,.ship-badge.today .ship-rel{color:#fff}
+.ship-badge.soon .ship-rel{color:#d35400}
+.order-body{flex:1;min-width:0}
+.order-content{font-size:14px;font-weight:600;color:#1a2a3a;line-height:1.4;word-break:break-word}
+.order-tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;align-items:center}
+.src-badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;white-space:nowrap}
+.src-furusato-sato{background:#e3f0e8;color:#1f7a44}
+.src-furusato-other{background:#eaf3e0;color:#4a7a1f}
+.src-net{background:#e0ecf7;color:#1a5a9a}
+.src-direct{background:#f3e8d8;color:#9a6a1a}
+.src-other{background:#ececec;color:#666}
+.writer-tag{font-size:11px;color:#5a7a9a}
+.order-memo{font-size:11px;color:#8aaabb;margin-top:5px;line-height:1.4;word-break:break-word}
+.order-actions{display:flex;gap:6px;margin-top:11px}
+.btn-done{flex:1;font-size:13px;padding:0 12px;height:36px;border:none;border-radius:7px;background:#27ae60;color:#fff;cursor:pointer;font-family:inherit;font-weight:700}
+.btn-done:hover{background:#1f9150}
+.btn-undo{flex:1;font-size:12px;padding:0 12px;height:34px;border:1px solid #b0c8e0;border-radius:7px;background:#f4f8fc;color:#1a4a7a;cursor:pointer;font-family:inherit;font-weight:600}
+.btn-undo:hover{background:#e8f0f7}
+.btn-edit{font-size:12px;padding:0 12px;height:36px;border:1px solid #b0c8e0;border-radius:7px;background:#fff;color:#1a4a7a;cursor:pointer;font-family:inherit;font-weight:600}
+.btn-edit:hover{background:#e8f0f7}
+.btn-del{font-size:12px;padding:0 11px;height:36px;border:1px solid #ddd;border-radius:7px;background:#fff;color:#bbb;cursor:pointer;font-family:inherit}
+.btn-del:hover{background:#fdecea;color:#c0392b;border-color:#e8a0a0}
+.done-stamp{font-size:10px;color:#8aaabb;margin-top:6px}
+
+.empty{padding:36px 16px;text-align:center;font-size:13px;color:#8aaabb;background:#fff;border:1px dashed #c0d4e8;border-radius:10px}
+
+.saving-toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1a4a7a;color:#fff;font-size:12px;padding:9px 18px;border-radius:8px;opacity:0;transition:opacity 0.3s;pointer-events:none;z-index:300;white-space:nowrap}
+.saving-toast.show{opacity:1}
+
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,20,60,0.45);z-index:100;align-items:center;justify-content:center;padding:16px}
+.modal-bg.open{display:flex}
+.modal{background:#fff;border-radius:14px;padding:22px 18px;width:340px;max-width:94vw;box-shadow:0 8px 32px rgba(0,40,100,0.18);max-height:90vh;overflow-y:auto}
+.modal-title{font-size:15px;font-weight:700;color:#1a2a3a;margin-bottom:14px}
+.modal .field{margin-bottom:10px}
+.modal input,.modal select{font-size:14px;padding:0 10px;height:40px;border:1px solid #b0c8e0;border-radius:7px;background:#f4f8fc;color:#1a2a3a;font-family:inherit;width:100%}
+.modal-btns{display:flex;gap:8px;margin-top:6px}
+.modal-btns button{flex:1;height:42px;font-size:14px;border-radius:8px;border:1px solid #b0c8e0;cursor:pointer;background:#fff;color:#1a2a3a;font-family:inherit;font-weight:600}
+.modal-btns .confirm{background:#1a4a7a;color:#fff;border-color:#1a4a7a}
+.modal-btns .confirm:hover{background:#0e3460}
+.modal-btns .cancel:hover{background:#e8f0f7}
+.err{border:1.5px solid #c0392b !important}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <div>
+      <h1>北洋丸 出荷管理</h1>
+      <div class="header-meta" id="sub-info">接続中...</div>
+    </div>
+    <div class="header-right">
+      <div class="header-total-label">未出荷</div>
+      <div class="header-total" id="total-label">—</div>
+      <div class="header-total-unit">件</div>
+    </div>
+  </div>
+
+  <div class="sync-status" id="sync-status">🔄 Firebase に接続中...</div>
+
+  <div class="alert-bar" id="alert-bar"></div>
+
+  <div class="add-form">
+    <div class="add-form-title">▸ 出荷予定を追加</div>
+    <div class="add-grid">
+      <div class="add-row">
+        <div class="field">
+          <label>出荷日</label>
+          <input type="date" id="f-date" />
+        </div>
+        <div class="field field-content">
+          <label>内容・商品（注文番号など）</label>
+          <input type="text" id="f-content" placeholder="例：来運サーモン800g ×2" />
+        </div>
+      </div>
+      <div class="add-row">
+        <div class="field">
+          <label>注文元</label>
+          <select id="f-source">
+            <option value="furusato-sato">ふるさと納税（さとふる）</option>
+            <option value="furusato-other">ふるさと納税（さとふる以外）</option>
+            <option value="net">ネット販売</option>
+            <option value="direct">直接注文</option>
+            <option value="other">その他</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>記入者（必須）</label>
+          <input type="text" id="f-writer" placeholder="あなたの名前" />
+        </div>
+      </div>
+      <div class="add-row">
+        <div class="field">
+          <label>メモ（任意）</label>
+          <input type="text" id="f-memo" placeholder="宛先・備考など" />
+        </div>
+      </div>
+      <button class="add-btn" id="add-btn">＋ 出荷予定に追加</button>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" id="tab-active" data-tab="active">未出荷<span class="tab-badge" id="badge-active"></span></div>
+    <div class="tab" id="tab-done" data-tab="done">出荷済（履歴）<span class="tab-badge" id="badge-done"></span></div>
+  </div>
+
+  <div id="list"></div>
+</div>
+
+<!-- 編集モーダル -->
+<div class="modal-bg" id="edit-modal">
+  <div class="modal">
+    <div class="modal-title">出荷予定を編集</div>
+    <div class="field">
+      <label>出荷日</label>
+      <input type="date" id="e-date" />
+    </div>
+    <div class="field">
+      <label>内容・商品</label>
+      <input type="text" id="e-content" />
+    </div>
+    <div class="field">
+      <label>注文元</label>
+      <select id="e-source">
+        <option value="furusato-sato">ふるさと納税（さとふる）</option>
+        <option value="furusato-other">ふるさと納税（さとふる以外）</option>
+        <option value="net">ネット販売</option>
+        <option value="direct">直接注文</option>
+        <option value="other">その他</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>記入者（必須）</label>
+      <input type="text" id="e-writer" />
+    </div>
+    <div class="field">
+      <label>メモ</label>
+      <input type="text" id="e-memo" />
+    </div>
+    <div class="modal-btns">
+      <button class="cancel" id="e-cancel">キャンセル</button>
+      <button class="confirm" id="e-save">保存する</button>
+    </div>
+  </div>
+</div>
+
+<div class="saving-toast" id="saving-toast">保存しました ✓</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getDatabase, ref, onValue, update, remove } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+// 在庫管理アプリと同じFirebaseプロジェクト。保存先ノードだけ orders に分離
+const firebaseConfig = {
+  apiKey: "AIzaSyD0-Dyqn27zDbqfQ2dc94XEMm_SfUK-xQ0",
+  authDomain: "hokuyomaru-inventory.firebaseapp.com",
+  databaseURL: "https://hokuyomaru-inventory-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "hokuyomaru-inventory",
+  storageBucket: "hokuyomaru-inventory.firebasestorage.app",
+  messagingSenderId: "77316847092",
+  appId: "1:77316847092:web:f4348f0681854e533cf5a1"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+const ordersRef = ref(db, "orders");
+
+const SOURCE_LABELS = {
+  "furusato-sato":"ふるさと納税（さとふる）",
+  "furusato-other":"ふるさと納税（さとふる以外）",
+  "net":"ネット販売",
+  "direct":"直接注文",
+  "other":"その他"
+};
+const SOURCE_CLASS = {
+  "furusato-sato":"src-furusato-sato",
+  "furusato-other":"src-furusato-other",
+  "net":"src-net",
+  "direct":"src-direct",
+  "other":"src-other"
+};
+
+let orders = {};      // { id: order }
+let currentTab = "active";
+let editId = null;
+
+// ---- ユーティリティ ----
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,8); }
+function eh(s){ return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+function pad(n){ return String(n).padStart(2,"0"); }
+function ymd(d){ return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate()); }
+function todayStr(){ return ymd(new Date()); }
+function parseYmd(s){ const a=s.split("-").map(Number); return new Date(a[0],a[1]-1,a[2]); }
+function dayDiff(s){ return Math.round((parseYmd(s)-parseYmd(todayStr()))/86400000); }
+const WD=["日","月","火","水","木","金","土"];
+function fmtShip(s){ const a=s.split("-"); return Number(a[1])+"/"+Number(a[2]); }
+function fmtShipFull(s){ return fmtShip(s)+"（"+WD[parseYmd(s).getDay()]+"）"; }
+function relInfo(s){
+  const d=dayDiff(s);
+  if(d<0) return {text:Math.abs(d)+"日経過",cls:"overdue"};
+  if(d===0) return {text:"本日",cls:"today"};
+  if(d===1) return {text:"明日",cls:"soon"};
+  return {text:d+"日後",cls:""};
+}
+function fmtTs(ts){ if(!ts) return ""; const d=new Date(ts); return (d.getMonth()+1)+"/"+d.getDate()+" "+pad(d.getHours())+":"+pad(d.getMinutes()); }
+
+function setStatus(msg,type=""){ const el=document.getElementById("sync-status"); el.textContent=msg; el.className="sync-status"+(type?" "+type:""); }
+function showToast(msg){ const t=document.getElementById("saving-toast"); t.textContent=msg||"保存しました ✓"; t.classList.add("show"); setTimeout(()=>t.classList.remove("show"),1400); }
+
+// ---- 書き込み ----
+async function save(id,obj,toast){
+  try{ await update(ref(db,"orders/"+id),obj); showToast(toast); }
+  catch(e){ setStatus("⚠️ 保存に失敗しました。通信環境を確認してください。","err"); }
+}
+async function del(id){
+  try{ await remove(ref(db,"orders/"+id)); showToast("削除しました"); }
+  catch(e){ setStatus("⚠️ 削除に失敗しました。通信環境を確認してください。","err"); }
+}
+
+function addOrder(){
+  const date=document.getElementById("f-date");
+  const content=document.getElementById("f-content");
+  const source=document.getElementById("f-source").value;
+  const writerEl=document.getElementById("f-writer");
+  const writtenBy=writerEl.value.trim();
+  const memo=document.getElementById("f-memo").value.trim();
+  let ok=true;
+  if(!date.value){ date.classList.add("err"); ok=false; } else date.classList.remove("err");
+  if(!content.value.trim()){ content.classList.add("err"); ok=false; } else content.classList.remove("err");
+  if(!writtenBy){ writerEl.classList.add("err"); ok=false; } else writerEl.classList.remove("err");
+  if(!ok) return;
+  const id=uid();
+  save(id,{
+    id, shipDate:date.value, content:content.value.trim(), source,
+    writtenBy, memo, status:"pending", createdAt:Date.now(), shippedAt:null
+  },"追加しました ✓");
+  content.value=""; document.getElementById("f-memo").value="";
+  content.focus();
+}
+
+// ---- 描画 ----
+function render(){
+  const arr=Object.values(orders);
+  const pending=arr.filter(o=>o.status==="pending");
+  const done=arr.filter(o=>o.status==="done");
+
+  const overdue=pending.filter(o=>dayDiff(o.shipDate)<0).length;
+  const todayCnt=pending.filter(o=>dayDiff(o.shipDate)===0).length;
+
+  document.getElementById("total-label").textContent=pending.length;
+  document.getElementById("sub-info").textContent="本日 "+todayCnt+"件・遅延 "+overdue+"件";
+  document.getElementById("badge-active").textContent="("+pending.length+")";
+  document.getElementById("badge-done").textContent="("+done.length+")";
+
+  const alert=document.getElementById("alert-bar");
+  if(overdue>0){ alert.textContent="⚠️ 出荷日を過ぎた未出荷が "+overdue+" 件あります"; alert.classList.add("show"); }
+  else alert.classList.remove("show");
+
+  const list=document.getElementById("list");
+  let rows;
+  if(currentTab==="active"){
+    rows=pending.sort((a,b)=> a.shipDate<b.shipDate?-1:a.shipDate>b.shipDate?1:a.createdAt-b.createdAt);
+    if(rows.length===0){ list.innerHTML=`<div class="empty">未出荷の予定はありません。<br>上の入力欄から出荷予定を追加できます。</div>`; return; }
+  }else{
+    rows=done.sort((a,b)=>(b.shippedAt||0)-(a.shippedAt||0));
+    if(rows.length===0){ list.innerHTML=`<div class="empty">出荷済みの履歴はまだありません。</div>`; return; }
+  }
+  list.innerHTML=rows.map(o=>card(o)).join("");
+}
+
+function card(o){
+  const rel=relInfo(o.shipDate);
+  const isDone=o.status==="done";
+  let cardCls="order-card";
+  if(isDone) cardCls+=" done";
+  else if(rel.cls==="overdue") cardCls+=" overdue";
+  else if(rel.cls==="today") cardCls+=" today";
+
+  const badgeCls="ship-badge"+(isDone?"":(rel.cls?" "+rel.cls:""));
+  const srcCls=SOURCE_CLASS[o.source]||"src-other";
+  const srcLabel=SOURCE_LABELS[o.source]||"その他";
+
+  const tags=`<div class="order-tags">
+      <span class="src-badge ${srcCls}">${eh(srcLabel)}</span>
+      ${o.writtenBy?`<span class="writer-tag">記入: ${eh(o.writtenBy)}</span>`:""}
+    </div>`;
+  const memo=o.memo?`<div class="order-memo">${eh(o.memo)}</div>`:"";
+
+  const actions=isDone
+    ? `<div class="order-actions">
+         <button class="btn-undo" data-act="undo" data-id="${o.id}">未出荷に戻す</button>
+         <button class="btn-edit" data-act="edit" data-id="${o.id}">編集</button>
+         <button class="btn-del" data-act="del" data-id="${o.id}">削除</button>
+       </div>
+       <div class="done-stamp">出荷済 ${fmtTs(o.shippedAt)}</div>`
+    : `<div class="order-actions">
+         <button class="btn-done" data-act="done" data-id="${o.id}">出荷済みにする</button>
+         <button class="btn-edit" data-act="edit" data-id="${o.id}">編集</button>
+         <button class="btn-del" data-act="del" data-id="${o.id}">削除</button>
+       </div>`;
+
+  return `<div class="${cardCls}">
+    <div class="order-top">
+      <div class="${badgeCls}">
+        <div class="ship-date">${fmtShip(o.shipDate)}</div>
+        <div class="ship-rel">${isDone?"出荷済":rel.text}</div>
+      </div>
+      <div class="order-body">
+        <div class="order-content">${eh(o.content)}</div>
+        ${tags}
+        ${memo}
+      </div>
+    </div>
+    ${actions}
+  </div>`;
+}
+
+// ---- 編集モーダル ----
+function openEdit(id){
+  const o=orders[id]; if(!o) return;
+  editId=id;
+  document.getElementById("e-date").value=o.shipDate;
+  document.getElementById("e-content").value=o.content;
+  document.getElementById("e-source").value=o.source;
+  document.getElementById("e-writer").value=o.writtenBy||"";
+  document.getElementById("e-memo").value=o.memo||"";
+  document.getElementById("edit-modal").classList.add("open");
+}
+function closeEdit(){ document.getElementById("edit-modal").classList.remove("open"); editId=null; }
+function saveEdit(){
+  if(!editId) return;
+  const date=document.getElementById("e-date");
+  const content=document.getElementById("e-content");
+  if(!date.value){ date.classList.add("err"); return; } date.classList.remove("err");
+  if(!content.value.trim()){ content.classList.add("err"); return; } content.classList.remove("err");
+  const eWriter=document.getElementById("e-writer");
+  if(!eWriter.value.trim()){ eWriter.classList.add("err"); return; } eWriter.classList.remove("err");
+  save(editId,{
+    shipDate:date.value,
+    content:content.value.trim(),
+    source:document.getElementById("e-source").value,
+    writtenBy:eWriter.value.trim(),
+    memo:document.getElementById("e-memo").value.trim()
+  },"更新しました ✓");
+  closeEdit();
+}
+
+// ---- イベント ----
+document.getElementById("add-btn").addEventListener("click",addOrder);
+document.getElementById("f-content").addEventListener("keydown",e=>{ if(e.key==="Enter") addOrder(); });
+
+document.getElementById("tab-active").addEventListener("click",()=>{ currentTab="active"; document.getElementById("tab-active").classList.add("active"); document.getElementById("tab-done").classList.remove("active"); render(); });
+document.getElementById("tab-done").addEventListener("click",()=>{ currentTab="done"; document.getElementById("tab-done").classList.add("active"); document.getElementById("tab-active").classList.remove("active"); render(); });
+
+document.getElementById("list").addEventListener("click",e=>{
+  const btn=e.target.closest("[data-act]"); if(!btn) return;
+  const id=btn.getAttribute("data-id");
+  const act=btn.getAttribute("data-act");
+  const o=orders[id]; if(!o) return;
+  if(act==="done") save(id,{status:"done",shippedAt:Date.now()},"出荷済みにしました ✓");
+  else if(act==="undo") save(id,{status:"pending",shippedAt:null},"未出荷に戻しました");
+  else if(act==="edit") openEdit(id);
+  else if(act==="del"){ if(confirm("この出荷予定を削除しますか？\n「"+o.content+"」")) del(id); }
+});
+
+document.getElementById("e-cancel").addEventListener("click",closeEdit);
+document.getElementById("e-save").addEventListener("click",saveEdit);
+document.getElementById("edit-modal").addEventListener("click",e=>{ if(e.target.id==="edit-modal") closeEdit(); });
+document.addEventListener("keydown",e=>{ if(e.key==="Escape") closeEdit(); });
+
+// 出荷日の初期値を本日に
+document.getElementById("f-date").value=todayStr();
+
+// ---- リアルタイム同期 ----
+onValue(ordersRef,(snap)=>{
+  orders=snap.val()||{};
+  setStatus("✅ リアルタイム同期中 — 9名で共有されています","ok");
+  render();
+},(err)=>{
+  setStatus("⚠️ 接続エラー: "+err.message,"err");
+});
+</script>
+</body>
+</html>
