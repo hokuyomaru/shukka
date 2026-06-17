@@ -30,6 +30,7 @@ body{font-family:'Hiragino Kaku Gothic ProN','Hiragino Sans','Yu Gothic',sans-se
 .field label{font-size:10px;color:#5a7a9a;font-weight:600;padding-left:2px}
 .add-form input,.add-form select{font-size:14px;padding:0 10px;height:40px;border:1px solid #b0c8e0;border-radius:7px;background:#f4f8fc;color:#1a2a3a;font-family:inherit;width:100%}
 .add-form .field-content{flex:2;min-width:180px}
+.add-form .field-date{flex:0 1 200px;max-width:200px}
 .add-btn{width:100%;font-size:14px;padding:0 16px;height:42px;border:none;border-radius:7px;background:#1a4a7a;color:#fff;cursor:pointer;font-family:inherit;font-weight:700;margin-top:2px}
 .add-btn:hover{background:#0e3460}
 
@@ -114,11 +115,13 @@ body{font-family:'Hiragino Kaku Gothic ProN','Hiragino Sans','Yu Gothic',sans-se
     <div class="add-form-title">▸ 出荷予定を追加</div>
     <div class="add-grid">
       <div class="add-row">
-        <div class="field">
+        <div class="field field-date">
           <label>出荷日</label>
           <input type="date" id="f-date" />
         </div>
-        <div class="field field-content">
+      </div>
+      <div class="add-row">
+        <div class="field">
           <label>内容・商品（注文番号など）</label>
           <input type="text" id="f-content" placeholder="例：来運サーモン800g ×2" />
         </div>
