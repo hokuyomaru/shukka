@@ -62,6 +62,12 @@ body{font-family:'Hiragino Kaku Gothic ProN','Hiragino Sans','Yu Gothic',sans-se
 .src-direct{background:#f3e8d8;color:#9a6a1a}
 .src-other{background:#ececec;color:#666}
 .writer-tag{font-size:11px;color:#5a7a9a}
+.tbd-check{display:flex;align-items:center;gap:6px;font-size:13px;color:#1a4a7a;font-weight:600;cursor:pointer}
+.tbd-check input{width:18px;height:18px}
+.ship-badge.tbd{background:#ececec}
+.ship-badge.tbd .ship-date{font-size:13px;color:#555}
+.ship-badge.tbd .ship-rel{color:#888}
+.add-form input:disabled,.modal input:disabled{background:#eef2f6;color:#aab;opacity:0.6}
 .order-memo{font-size:11px;color:#8aaabb;margin-top:5px;line-height:1.4;word-break:break-word}
 .order-actions{display:flex;gap:6px;margin-top:11px}
 .btn-done{flex:1;font-size:13px;padding:0 12px;height:36px;border:none;border-radius:7px;background:#27ae60;color:#fff;cursor:pointer;font-family:inherit;font-weight:700}
@@ -121,6 +127,9 @@ body{font-family:'Hiragino Kaku Gothic ProN','Hiragino Sans','Yu Gothic',sans-se
         </div>
       </div>
       <div class="add-row">
+        <label class="tbd-check"><input type="checkbox" id="f-tbd" /> 出荷日は未定（決まり次第あとで設定）</label>
+      </div>
+      <div class="add-row">
         <div class="field">
           <label>内容・商品（注文番号など）</label>
           <input type="text" id="f-content" placeholder="例：来運サーモン800g ×2" />
@@ -167,6 +176,9 @@ body{font-family:'Hiragino Kaku Gothic ProN','Hiragino Sans','Yu Gothic',sans-se
     <div class="field">
       <label>出荷日</label>
       <input type="date" id="e-date" />
+    </div>
+    <div class="field">
+      <label class="tbd-check"><input type="checkbox" id="e-tbd" /> 出荷日は未定</label>
     </div>
     <div class="field">
       <label>内容・商品</label>
@@ -246,9 +258,10 @@ function todayStr(){ return ymd(new Date()); }
 function parseYmd(s){ const a=s.split("-").map(Number); return new Date(a[0],a[1]-1,a[2]); }
 function dayDiff(s){ return Math.round((parseYmd(s)-parseYmd(todayStr()))/86400000); }
 const WD=["日","月","火","水","木","金","土"];
-function fmtShip(s){ const a=s.split("-"); return Number(a[1])+"/"+Number(a[2]); }
+function fmtShip(s){ if(!s) return "未定"; const a=s.split("-"); return Number(a[1])+"/"+Number(a[2]); }
 function fmtShipFull(s){ return fmtShip(s)+"（"+WD[parseYmd(s).getDay()]+"）"; }
 function relInfo(s){
+  if(!s) return {text:"未定",cls:"tbd"};
   const d=dayDiff(s);
   if(d<0) return {text:Math.abs(d)+"日経過",cls:"overdue"};
   if(d===0) return {text:"本日",cls:"today"};
@@ -277,17 +290,19 @@ function addOrder(){
   const writerEl=document.getElementById("f-writer");
   const writtenBy=writerEl.value.trim();
   const memo=document.getElementById("f-memo").value.trim();
+  const tbd=document.getElementById("f-tbd").checked;
   let ok=true;
-  if(!date.value){ date.classList.add("err"); ok=false; } else date.classList.remove("err");
+  if(!tbd && !date.value){ date.classList.add("err"); ok=false; } else date.classList.remove("err");
   if(!content.value.trim()){ content.classList.add("err"); ok=false; } else content.classList.remove("err");
   if(!writtenBy){ writerEl.classList.add("err"); ok=false; } else writerEl.classList.remove("err");
   if(!ok) return;
   const id=uid();
   save(id,{
-    id, shipDate:date.value, content:content.value.trim(), source,
+    id, shipDate:tbd?"":date.value, content:content.value.trim(), source,
     writtenBy, memo, status:"pending", createdAt:Date.now(), shippedAt:null
   },"追加しました ✓");
   content.value=""; document.getElementById("f-memo").value="";
+  document.getElementById("f-tbd").checked=false; date.disabled=false;
   content.focus();
 }
 
@@ -297,8 +312,8 @@ function render(){
   const pending=arr.filter(o=>o.status==="pending");
   const done=arr.filter(o=>o.status==="done");
 
-  const overdue=pending.filter(o=>dayDiff(o.shipDate)<0).length;
-  const todayCnt=pending.filter(o=>dayDiff(o.shipDate)===0).length;
+  const overdue=pending.filter(o=>o.shipDate && dayDiff(o.shipDate)<0).length;
+  const todayCnt=pending.filter(o=>o.shipDate && dayDiff(o.shipDate)===0).length;
 
   document.getElementById("total-label").textContent=pending.length;
   document.getElementById("sub-info").textContent="本日 "+todayCnt+"件・遅延 "+overdue+"件";
@@ -312,7 +327,7 @@ function render(){
   const list=document.getElementById("list");
   let rows;
   if(currentTab==="active"){
-    rows=pending.sort((a,b)=> a.shipDate<b.shipDate?-1:a.shipDate>b.shipDate?1:a.createdAt-b.createdAt);
+    rows=pending.sort((a,b)=>{ if(!a.shipDate&&!b.shipDate) return a.createdAt-b.createdAt; if(!a.shipDate) return 1; if(!b.shipDate) return -1; return a.shipDate<b.shipDate?-1:a.shipDate>b.shipDate?1:a.createdAt-b.createdAt; });
     if(rows.length===0){ list.innerHTML=`<div class="empty">未出荷の予定はありません。<br>上の入力欄から出荷予定を追加できます。</div>`; return; }
   }else{
     rows=done.sort((a,b)=>(b.shippedAt||0)-(a.shippedAt||0));
@@ -356,7 +371,7 @@ function card(o){
     <div class="order-top">
       <div class="${badgeCls}">
         <div class="ship-date">${fmtShip(o.shipDate)}</div>
-        <div class="ship-rel">${isDone?"出荷済":rel.text}</div>
+        <div class="ship-rel">${isDone?"出荷済":(o.shipDate?rel.text:"")}</div>
       </div>
       <div class="order-body">
         <div class="order-content">${eh(o.content)}</div>
@@ -372,7 +387,10 @@ function card(o){
 function openEdit(id){
   const o=orders[id]; if(!o) return;
   editId=id;
-  document.getElementById("e-date").value=o.shipDate;
+  const eTbd=document.getElementById("e-tbd");
+  eTbd.checked=!o.shipDate;
+  document.getElementById("e-date").value=o.shipDate||"";
+  document.getElementById("e-date").disabled=eTbd.checked;
   document.getElementById("e-content").value=o.content;
   document.getElementById("e-source").value=o.source;
   document.getElementById("e-writer").value=o.writtenBy||"";
@@ -384,12 +402,13 @@ function saveEdit(){
   if(!editId) return;
   const date=document.getElementById("e-date");
   const content=document.getElementById("e-content");
-  if(!date.value){ date.classList.add("err"); return; } date.classList.remove("err");
+  const tbd=document.getElementById("e-tbd").checked;
+  if(!tbd && !date.value){ date.classList.add("err"); return; } date.classList.remove("err");
   if(!content.value.trim()){ content.classList.add("err"); return; } content.classList.remove("err");
   const eWriter=document.getElementById("e-writer");
   if(!eWriter.value.trim()){ eWriter.classList.add("err"); return; } eWriter.classList.remove("err");
   save(editId,{
-    shipDate:date.value,
+    shipDate:tbd?"":date.value,
     content:content.value.trim(),
     source:document.getElementById("e-source").value,
     writtenBy:eWriter.value.trim(),
@@ -401,6 +420,8 @@ function saveEdit(){
 // ---- イベント ----
 document.getElementById("add-btn").addEventListener("click",addOrder);
 document.getElementById("f-content").addEventListener("keydown",e=>{ if(e.key==="Enter") addOrder(); });
+document.getElementById("f-tbd").addEventListener("change",e=>{ const d=document.getElementById("f-date"); d.disabled=e.target.checked; if(e.target.checked) d.classList.remove("err"); });
+document.getElementById("e-tbd").addEventListener("change",e=>{ document.getElementById("e-date").disabled=e.target.checked; });
 
 document.getElementById("tab-active").addEventListener("click",()=>{ currentTab="active"; document.getElementById("tab-active").classList.add("active"); document.getElementById("tab-done").classList.remove("active"); render(); });
 document.getElementById("tab-done").addEventListener("click",()=>{ currentTab="done"; document.getElementById("tab-done").classList.add("active"); document.getElementById("tab-active").classList.remove("active"); render(); });
