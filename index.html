@@ -58,8 +58,8 @@ body{font-family:'Hiragino Kaku Gothic ProN','Hiragino Sans','Yu Gothic',sans-se
 .order-content{font-size:14px;font-weight:600;color:#1a2a3a;line-height:1.4;word-break:break-word}
 .order-tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;align-items:center}
 .src-badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;white-space:nowrap}
-.src-furusato-sato{background:#e3f0e8;color:#1f7a44}
-.src-furusato-other{background:#eaf3e0;color:#4a7a1f}
+.src-furusato-sato{background:#d6efdf;color:#1f7a44}
+.src-furusato-other{background:#e9ddf5;color:#6a3a9a}
 .src-net{background:#e0ecf7;color:#1a5a9a}
 .src-direct{background:#f3e8d8;color:#9a6a1a}
 .src-other{background:#ececec;color:#666}
@@ -279,6 +279,7 @@ function relInfo(s){
   return {text:d+"日後",cls:""};
 }
 function fmtTs(ts){ if(!ts) return ""; const d=new Date(ts); return (d.getMonth()+1)+"/"+d.getDate()+" "+pad(d.getHours())+":"+pad(d.getMinutes()); }
+function fmtDay(ts){ if(!ts) return ""; const d=new Date(ts); return (d.getMonth()+1)+"/"+d.getDate(); }
 
 function setStatus(msg,type=""){ const el=document.getElementById("sync-status"); el.textContent=msg; el.className="sync-status"+(type?" "+type:""); }
 function showToast(msg){ const t=document.getElementById("saving-toast"); t.textContent=msg||"保存しました ✓"; t.classList.add("show"); setTimeout(()=>t.classList.remove("show"),1400); }
@@ -362,7 +363,7 @@ function card(o){
   const tags=`<div class="order-tags">
       <span class="src-badge ${srcCls}">${eh(srcLabel)}</span>
       ${o.qty?`<span class="qty-tag">${eh(o.qty)}件</span>`:""}
-      ${o.writtenBy?`<span class="writer-tag">記入: ${eh(o.writtenBy)}</span>`:""}
+      ${o.writtenBy?`<span class="writer-tag">記入: ${eh(o.writtenBy)}${o.createdAt?"（"+fmtDay(o.createdAt)+"）":""}</span>`:""}
     </div>`;
   const memo=o.memo?`<div class="order-memo">${eh(o.memo)}</div>`:"";
 
