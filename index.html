@@ -31,6 +31,8 @@ body{font-family:'Hiragino Kaku Gothic ProN','Hiragino Sans','Yu Gothic',sans-se
 .add-form input,.add-form select{font-size:14px;padding:0 10px;height:40px;border:1px solid #b0c8e0;border-radius:7px;background:#f4f8fc;color:#1a2a3a;font-family:inherit;width:100%}
 .add-form .field-content{flex:2;min-width:180px}
 .add-form .field-date{flex:0 1 200px;max-width:200px}
+.add-form .field-qty{flex:0 1 120px;max-width:130px}
+.qty-tag{font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;background:#dceaf5;color:#1a4a7a;white-space:nowrap}
 .add-btn{width:100%;font-size:14px;padding:0 16px;height:42px;border:none;border-radius:7px;background:#1a4a7a;color:#fff;cursor:pointer;font-family:inherit;font-weight:700;margin-top:2px}
 .add-btn:hover{background:#0e3460}
 
@@ -152,6 +154,10 @@ body{font-family:'Hiragino Kaku Gothic ProN','Hiragino Sans','Yu Gothic',sans-se
         </div>
       </div>
       <div class="add-row">
+        <div class="field field-qty">
+          <label>件数（任意）</label>
+          <input type="number" id="f-qty" min="1" placeholder="例：50" />
+        </div>
         <div class="field">
           <label>メモ（任意）</label>
           <input type="text" id="f-memo" placeholder="宛先・備考など" />
@@ -197,6 +203,10 @@ body{font-family:'Hiragino Kaku Gothic ProN','Hiragino Sans','Yu Gothic',sans-se
     <div class="field">
       <label>記入者（必須）</label>
       <input type="text" id="e-writer" />
+    </div>
+    <div class="field">
+      <label>件数（任意）</label>
+      <input type="number" id="e-qty" min="1" />
     </div>
     <div class="field">
       <label>メモ</label>
@@ -290,6 +300,7 @@ function addOrder(){
   const writerEl=document.getElementById("f-writer");
   const writtenBy=writerEl.value.trim();
   const memo=document.getElementById("f-memo").value.trim();
+  const qtyVal=document.getElementById("f-qty").value.trim();
   const tbd=document.getElementById("f-tbd").checked;
   let ok=true;
   if(!tbd && !date.value){ date.classList.add("err"); ok=false; } else date.classList.remove("err");
@@ -299,9 +310,9 @@ function addOrder(){
   const id=uid();
   save(id,{
     id, shipDate:tbd?"":date.value, content:content.value.trim(), source,
-    writtenBy, memo, status:"pending", createdAt:Date.now(), shippedAt:null
+    writtenBy, memo, qty:qtyVal?Number(qtyVal):null, status:"pending", createdAt:Date.now(), shippedAt:null
   },"追加しました ✓");
-  content.value=""; document.getElementById("f-memo").value="";
+  content.value=""; document.getElementById("f-memo").value=""; document.getElementById("f-qty").value="";
   document.getElementById("f-tbd").checked=false; date.disabled=false;
   content.focus();
 }
@@ -350,6 +361,7 @@ function card(o){
 
   const tags=`<div class="order-tags">
       <span class="src-badge ${srcCls}">${eh(srcLabel)}</span>
+      ${o.qty?`<span class="qty-tag">${eh(o.qty)}件</span>`:""}
       ${o.writtenBy?`<span class="writer-tag">記入: ${eh(o.writtenBy)}</span>`:""}
     </div>`;
   const memo=o.memo?`<div class="order-memo">${eh(o.memo)}</div>`:"";
@@ -394,6 +406,7 @@ function openEdit(id){
   document.getElementById("e-content").value=o.content;
   document.getElementById("e-source").value=o.source;
   document.getElementById("e-writer").value=o.writtenBy||"";
+  document.getElementById("e-qty").value=o.qty||"";
   document.getElementById("e-memo").value=o.memo||"";
   document.getElementById("edit-modal").classList.add("open");
 }
@@ -412,7 +425,8 @@ function saveEdit(){
     content:content.value.trim(),
     source:document.getElementById("e-source").value,
     writtenBy:eWriter.value.trim(),
-    memo:document.getElementById("e-memo").value.trim()
+    memo:document.getElementById("e-memo").value.trim(),
+    qty:(document.getElementById("e-qty").value.trim()?Number(document.getElementById("e-qty").value.trim()):null)
   },"更新しました ✓");
   closeEdit();
 }
