@@ -363,7 +363,7 @@ function card(o){
   const tags=`<div class="order-tags">
       <span class="src-badge ${srcCls}">${eh(srcLabel)}</span>
       ${o.qty?`<span class="qty-tag">${eh(o.qty)}件</span>`:""}
-      ${o.writtenBy?`<span class="writer-tag">記入: ${eh(o.writtenBy)}${o.createdAt?"（"+fmtDay(o.createdAt)+"）":""}</span>`:""}
+      ${o.writtenBy?`<span class="writer-tag">記入: ${eh(o.writtenBy)}${(o.updatedAt||o.createdAt)?"（"+fmtDay(o.updatedAt||o.createdAt)+"）":""}</span>`:""}
     </div>`;
   const memo=o.memo?`<div class="order-memo">${eh(o.memo)}</div>`:"";
 
@@ -427,7 +427,8 @@ function saveEdit(){
     source:document.getElementById("e-source").value,
     writtenBy:eWriter.value.trim(),
     memo:document.getElementById("e-memo").value.trim(),
-    qty:(document.getElementById("e-qty").value.trim()?Number(document.getElementById("e-qty").value.trim()):null)
+    qty:(document.getElementById("e-qty").value.trim()?Number(document.getElementById("e-qty").value.trim()):null),
+    updatedAt:Date.now()
   },"更新しました ✓");
   closeEdit();
 }
